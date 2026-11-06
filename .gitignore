@@ -6,3 +6,7 @@ unpackage/
 .env.local
 .env.*.local
 .hbuilderx/
+
+# 微信上传密钥，绝不提交
+*.key
+private.*.key
