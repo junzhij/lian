@@ -54,7 +54,7 @@ const meta = computed(() => STATE_META[props.state])
 
 .pill--dark {
   background: rgba(255, 255, 255, 0.12);
-  &.pill--ok { color: $lime; }
+  &.pill--ok { color: #86efac; }
   &.pill--stale { color: #fbbf77; }
   &.pill--off { color: #cbd5e1; }
   &.pill--err { color: #fca5a5; }

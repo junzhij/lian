@@ -153,11 +153,12 @@ function back() {
   padding: 16rpx 28rpx calc(160rpx + env(safe-area-inset-bottom));
 }
 .intro { padding: 24rpx 8rpx 32rpx; display: flex; flex-direction: column; gap: 12rpx; }
-.h1 { font-size: 48rpx; font-weight: 800; letter-spacing: -0.5rpx; }
+.h1 { font-family: $serif; font-size: 52rpx; font-weight: 600; }
 .lead { font-size: 26rpx; color: $ink-2; }
 
 .card {
   background: $surface;
+  border: $hairline;
   border-radius: $radius-lg;
   padding: 32rpx 28rpx;
   margin-bottom: 20rpx;
@@ -173,7 +174,7 @@ function back() {
 .chip {
   padding: 16rpx 28rpx;
   border-radius: 999rpx;
-  background: $bg;
+  background: $sunken;
   font-size: 26rpx;
   color: $ink-2;
   border: 2rpx solid transparent;
@@ -185,11 +186,11 @@ function back() {
   height: 220rpx;
   padding: 20rpx 24rpx;
   border-radius: $radius;
-  background: $bg;
+  background: $sunken;
   font-size: 28rpx;
   line-height: 1.6;
 }
-.ph { color: #9aa8a4; }
+.ph { color: #9d978a; }
 .count { align-self: flex-end; margin-top: 10rpx; font-size: 22rpx; color: $ink-3; }
 
 .images { display: flex; gap: 16rpx; }
@@ -216,8 +217,8 @@ function back() {
   justify-content: center;
 }
 .img--add {
-  background: $bg;
-  border: 2rpx dashed #c3cfcb;
+  background: $sunken;
+  border: 2rpx dashed #cdc7ba;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -228,7 +229,7 @@ function back() {
   height: 88rpx;
   padding: 0 24rpx;
   border-radius: $radius;
-  background: $bg;
+  background: $sunken;
   font-size: 28rpx;
 }
 
@@ -243,9 +244,9 @@ function back() {
   font-size: 30rpx;
   font-weight: 800;
 }
-.btn--brand { background: $brand; color: #fff; box-shadow: 0 16rpx 40rpx rgba(14, 124, 107, 0.3); }
+.btn--brand { background: $brand; color: #fff; }
 .btn--dark { background: $ink; color: #fff; }
-.btn--disabled { background: #c9d3d0; box-shadow: none; }
+.btn--disabled { background: #cfcabf; }
 .privacy { font-size: 22rpx; color: $ink-3; }
 
 .done {
@@ -260,8 +261,8 @@ function back() {
   width: 160rpx;
   height: 160rpx;
   border-radius: 50%;
-  background: $lime;
-  color: $ink;
+  background: $brand-soft;
+  color: $brand;
   font-size: 72rpx;
   font-weight: 900;
   display: flex;
@@ -269,7 +270,7 @@ function back() {
   justify-content: center;
   margin-bottom: 24rpx;
 }
-.done-title { font-size: 44rpx; font-weight: 800; }
+.done-title { font-family: $serif; font-size: 48rpx; font-weight: 600; }
 .done-desc { font-size: 26rpx; color: $ink-2; }
 .done-id { font-size: 22rpx; color: $ink-3; margin-bottom: 48rpx; }
 </style>

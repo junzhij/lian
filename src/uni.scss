@@ -1,32 +1,43 @@
-/* 设计 token：每个 .vue 文件都能直接用（uni 会自动注入本文件） */
+/*
+ * 设计 token（uni 会自动注入到每个 .vue 文件）
+ *
+ * 设计原则：暖白底、衬线标题、单一主色、细线分隔代替重阴影和渐变；
+ * 内容优先，界面本身尽量安静。状态色只用于数据状态，且总是配文字。
+ */
 
-// 品牌
-$ink: #0b1f1c;          // 主文字 / 深色背景
-$ink-2: #3c4f4b;        // 次级文字
-$ink-3: #6b7c78;        // 辅助文字（对白底 ≥ 4.5:1）
-$brand: #0e7c6b;        // 主色：黎安青
-$brand-deep: #08594d;
-$brand-soft: #e3f2ee;
-$lime: #c8f169;         // 点缀色，只用在深色背景上
+// 文字（暖黑）
+$ink: #1f1e1b;
+$ink-2: #4a4740;
+$ink-3: #6e6a61;   // 在 $bg 上对比度 ≈ 5:1
+
+// 主色：黎安青（只用在关键操作和强调上）
+$brand: #1f6f63;
+$brand-deep: #17564d;
+$brand-soft: #e6efeb;
 
 // 表面
-$bg: #f3f6f4;
-$surface: #ffffff;
-$line: #e4ebe8;
+$bg: #f6f4ef;      // 暖白页面底色
+$surface: #fcfbf8; // 卡片
+$sunken: #efece5;  // 输入框、次级块
+$line: #e6e1d7;    // 细分隔线
 
-// 数据状态（文字用深色版本保证对比度，状态同时有文字，不只靠颜色）
+// 数据状态（深色文字保证对比度）
 $ok: #15803d;
-$ok-soft: #e7f6ec;
+$ok-soft: #e7f3ea;
 $stale: #b45309;
-$stale-soft: #fdf1e3;
-$off: #475569;
-$off-soft: #eef1f5;
+$stale-soft: #fbefe0;
+$off: #57534e;
+$off-soft: #ecebe7;
 $err: #b91c1c;
-$err-soft: #fdeaea;
+$err-soft: #fbe9e7;
 
-$radius-lg: 40rpx;
-$radius: 28rpx;
-$radius-sm: 18rpx;
+$radius-lg: 32rpx;
+$radius: 24rpx;
+$radius-sm: 16rpx;
 
-$shadow: 0 12rpx 40rpx rgba(11, 31, 28, 0.08);
-$shadow-lg: 0 24rpx 64rpx rgba(11, 31, 28, 0.16);
+$hairline: 1rpx solid $line;
+$shadow: 0 2rpx 8rpx rgba(31, 30, 27, 0.04);
+$shadow-lg: 0 12rpx 40rpx rgba(31, 30, 27, 0.08);
+
+// 标题用衬线体（系统自带的宋体 / Noto Serif），正文用系统无衬线
+$serif: 'Songti SC', 'STSongti-SC-Regular', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', Georgia, serif;

@@ -63,7 +63,7 @@ export const MOCK_ROUTES: Route[] = [
     id: 'a2',
     name: 'A2 环线',
     code: 'A2',
-    color: '#A87400',
+    color: '#8A5F00',
     status: 'active',
     summary: 'KR 巴士总站 → IT → 博物馆 → KR MRT → PGPR → TCOMS',
     loopMinutes: 22,

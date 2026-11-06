@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onShareAppMessage } from '@dcloudio/uni-app'
 import StatusPill from '@/components/StatusPill.vue'
 import MockSwitch from '@/components/MockSwitch.vue'
 import { useNavLayout } from '@/composables/useNavLayout'
+import { pinRoute, unpinRoute, usePinnedRoute } from '@/composables/usePinnedRoute'
 import { useVehicles } from '@/composables/useVehicles'
 import { HOME_POLL_MS } from '@/config'
 import { api } from '@/services/api'
@@ -17,9 +18,9 @@ const routes = ref<Route[]>([])
 const routesError = ref<string | null>(null)
 const routesLoading = ref(true)
 
-const primary = computed(() => routes.value.find((r) => r.status === 'active'))
+const { featured, isManual, pinnedId, active } = usePinnedRoute(routes)
 
-const { views, state, serverNow, snapshot, refresh: refreshVehicles } = useVehicles(() => primary.value?.id, HOME_POLL_MS)
+const { views, state, serverNow, snapshot, refresh: refreshVehicles } = useVehicles(() => featured.value?.id, HOME_POLL_MS)
 
 async function loadRoutes() {
   routesLoading.value = true
@@ -39,7 +40,9 @@ onPullDownRefresh(async () => {
   await loadRoutes()
   uni.stopPullDownRefresh()
 })
+onShareAppMessage(() => ({ title: '校园摆渡车实时位置', path: '/pages/index/index' }))
 
+/* ---------- 问候 ---------- */
 const greeting = computed(() => {
   const h = new Date(serverNow.value).getHours()
   if (h < 5) return '夜深了'
@@ -49,16 +52,22 @@ const greeting = computed(() => {
   return '晚上好'
 })
 
-const clock = computed(() => formatHM(serverNow.value))
+const subline = computed(() => {
+  const t = `现在 ${formatHM(serverNow.value)}`
+  if (state.value === 'offhours') return `${t} · 非运营时段`
+  if (state.value === 'normal' || state.value === 'stale' || state.value === 'unavailable') return `${t} · 运营中`
+  return t
+})
 
+/* ---------- 置顶卡片 ---------- */
 const lead = computed(() => views.value[0])
 
-const liveLine = computed(() => {
-  const r = primary.value
+const headline = computed(() => {
+  const r = featured.value
   switch (state.value) {
     case 'normal':
     case 'stale':
-      return lead.value && r ? `${lead.value.vehicle.vehicleId} · ${describeNear(lead.value.vehicle, r.stops)}` : ''
+      return lead.value && r ? describeNear(lead.value.vehicle, r.stops) : ''
     case 'unavailable':
       return '位置暂不可用'
     case 'offhours':
@@ -70,158 +79,167 @@ const liveLine = computed(() => {
   }
 })
 
-const liveSub = computed(() => {
+const detail = computed(() => {
   switch (state.value) {
     case 'normal':
-      return lead.value ? `${formatAgo(lead.value.ageMs)}更新` : ''
+      return lead.value ? `${lead.value.vehicle.vehicleId} · ${formatAgo(lead.value.ageMs)}更新` : ''
     case 'stale':
-      return lead.value ? `最后更新于 ${formatHMS(lead.value.vehicle.collectedAt)}` : ''
+      return lead.value ? `${lead.value.vehicle.vehicleId} · 数据已过期，最后更新于 ${formatHMS(lead.value.vehicle.collectedAt)}` : ''
     case 'unavailable':
       return '定位设备暂时离线，线路和站点照常可看'
     case 'offhours':
       return snapshot.value?.nextServiceAt ? `下一班次 ${snapshot.value.nextServiceAt} 开始` : '请留意服务时段'
     case 'error':
-      return '点此重试，或稍后再来看看'
+      return '轻点重试，或稍后再来看看'
     default:
       return ''
   }
 })
 
-const serviceText = computed(() => {
-  if (state.value === 'offhours') return '非运营时段'
-  if (state.value === 'loading' || state.value === 'error') return '服务时段'
-  return '运营中'
-})
-
-function openRoute(r: Route) {
-  if (r.status !== 'active') {
-    uni.showToast({ title: '该线路还未开通', icon: 'none' })
-    return
+/* ---------- 置顶操作 ---------- */
+function togglePin(r: Route) {
+  if (pinnedId.value === r.id) {
+    unpinRoute()
+    uni.showToast({ title: '已取消置顶', icon: 'none' })
+  } else {
+    pinRoute(r.id)
+    uni.showToast({ title: `已置顶 ${r.code}`, icon: 'none' })
   }
+}
+
+function changePin() {
+  const options = active.value.slice(0, isManual.value ? 5 : 6)
+  const items = options.map((r) => `${r.id === featured.value?.id ? '✓ ' : ''}${r.code} · ${r.name}`)
+  if (isManual.value) items.push('取消置顶')
+  uni.showActionSheet({
+    itemList: items,
+    success: ({ tapIndex }) => {
+      if (tapIndex < options.length) pinRoute(options[tapIndex].id)
+      else unpinRoute()
+    },
+  })
+}
+
+/* ---------- 导航 ---------- */
+function openRoute(r: Route) {
+  if (r.status !== 'active') return uni.showToast({ title: '该线路还未开通', icon: 'none' })
   uni.navigateTo({ url: `/pages/route/detail?id=${r.id}` })
 }
 
-function onLiveTap() {
-  if (state.value === 'error') {
-    if (routesError.value) loadRoutes()
-    else refreshVehicles()
-    return
-  }
-  if (primary.value) openRoute(primary.value)
+function onFeaturedTap() {
+  if (routesError.value) return loadRoutes()
+  if (state.value === 'error') return refreshVehicles()
+  if (featured.value) openRoute(featured.value)
 }
 
 const go = (url: string) => uni.navigateTo({ url })
+const hours = (r: Route) => r.serviceWindows.map((w) => `${w.start}–${w.end}`).join(' · ')
 </script>
 
 <template>
-  <view class="page">
-    <!-- Hero -->
-    <view class="hero" :style="{ paddingTop: nav.statusBar + 'px' }">
-      <view class="glow glow--a" />
-      <view class="glow glow--b" />
-      <view class="nav" :style="{ height: nav.navHeight + 'px', paddingRight: nav.capsuleWidth + 'px' }">
-        <view class="brand">
-          <view class="mark"><text>黎</text></view>
-          <text class="brand-name">智汇黎安<text class="plus">+</text></text>
-        </view>
-      </view>
-
-      <view class="hero-body">
-        <text class="eyebrow">{{ greeting }} · 校园摆渡车</text>
-        <text class="headline">车在哪，\n出门前就知道。</text>
-        <view class="clock-row">
-          <text class="clock num">{{ clock }}</text>
-          <view class="svc">
-            <view :class="['svc-dot', state === 'offhours' ? 'svc-dot--off' : '']" />
-            <text>{{ serviceText }}</text>
-          </view>
-        </view>
-      </view>
+  <view class="page" :style="{ paddingTop: nav.statusBar + 'px' }">
+    <view class="nav" :style="{ height: nav.navHeight + 'px', paddingRight: nav.capsuleWidth + 'px' }">
+      <text class="wordmark">智汇黎安<text class="plus">+</text></text>
     </view>
 
-    <!-- 实时卡片 -->
-    <view class="content">
-      <view v-if="routesError" class="card err-card">
-        <text class="err-title">服务异常</text>
-        <text class="err-desc">{{ routesError }}，暂时无法获取线路信息。</text>
-        <view class="btn btn--dark" hover-class="tap-active" @tap="loadRoutes"><text>重新加载</text></view>
+    <view class="greet">
+      <text class="greet-title">{{ greeting }}</text>
+      <text class="greet-sub num">{{ subline }}</text>
+    </view>
+
+    <!-- 置顶 -->
+    <view class="section">
+      <view class="section-head">
+        <text class="section-title">{{ isManual ? '置顶线路' : '默认线路' }}</text>
+        <text v-if="active.length > 1" class="section-action" hover-class="tap-active" @tap="changePin">更换</text>
       </view>
 
-      <view v-else-if="primary" class="card live tap" hover-class="tap-active" @tap="onLiveTap">
-        <view class="live-head">
-          <view class="code" :style="{ background: primary.color }"><text>{{ primary.code }}</text></view>
-          <view class="live-title">
-            <text class="live-name">{{ primary.name }}</text>
-            <text class="live-meta">{{ primary.stops.length }} 站 · 约 {{ primary.loopMinutes }} 分钟一圈</text>
-          </view>
+      <view v-if="routesError" class="card featured" hover-class="card-hover" @tap="loadRoutes">
+        <StatusPill state="error" size="sm" />
+        <text class="headline headline--err">服务异常</text>
+        <text class="detail">{{ routesError }}，暂时无法获取线路信息。轻点重试。</text>
+      </view>
+
+      <view v-else-if="featured" class="card featured" hover-class="card-hover" @tap="onFeaturedTap">
+        <view class="featured-top">
+          <view class="code" :style="{ background: featured.color }"><text>{{ featured.code }}</text></view>
+          <text class="featured-name">{{ featured.name }}</text>
           <StatusPill :state="state" size="sm" />
         </view>
-
-        <view :class="['live-main', `live-main--${state}`]">
-          <text class="live-line">{{ liveLine }}</text>
-          <text class="live-sub num">{{ liveSub }}</text>
-        </view>
-
-        <view class="live-foot">
-          <text class="hint">{{ state === 'error' ? '轻点重试' : '查看地图与站点' }}</text>
-          <view class="arrow"><text>→</text></view>
+        <text :class="['headline', `headline--${state}`]">{{ headline }}</text>
+        <text class="detail num">{{ detail }}</text>
+        <view class="featured-foot">
+          <text>{{ state === 'error' ? '重试' : '查看地图与站点' }}</text>
+          <text class="arrow">→</text>
         </view>
       </view>
 
-      <view v-else-if="routesLoading" class="card live skeleton">
+      <view v-else-if="routesLoading" class="card featured">
         <view class="sk sk--a" />
         <view class="sk sk--b" />
         <view class="sk sk--c" />
       </view>
 
-      <!-- 全部线路 -->
-      <view v-if="routes.length" class="section">
-        <text class="section-title">全部线路</text>
+      <text v-if="featured && !isManual && active.length > 1" class="pin-hint">点线路右侧的 ☆ 可以把常坐的线路置顶</text>
+    </view>
+
+    <!-- 全部线路 -->
+    <view v-if="routes.length" class="section">
+      <view class="section-head"><text class="section-title">全部线路</text></view>
+      <view class="card list">
         <view
           v-for="r in routes"
           :key="r.id"
-          :class="['card', 'route', { 'route--planned': r.status !== 'active' }]"
-          hover-class="tap-active"
+          :class="['row', { 'row--planned': r.status !== 'active' }]"
+          hover-class="row-hover"
           @tap="openRoute(r)"
         >
-          <view class="code code--lg" :style="{ background: r.status === 'active' ? r.color : '#c9d3d0' }">
-            <text>{{ r.code }}</text>
-          </view>
-          <view class="route-body">
-            <view class="route-top">
-              <text class="route-name">{{ r.name }}</text>
-              <text v-if="r.status !== 'active'" class="tag-soon">即将开通</text>
+          <view class="code" :style="{ background: r.status === 'active' ? r.color : '#c9c4b8' }"><text>{{ r.code }}</text></view>
+          <view class="row-body">
+            <view class="row-top">
+              <text class="row-name">{{ r.name }}</text>
+              <text v-if="r.status !== 'active'" class="tag">即将开通</text>
             </view>
-            <text class="route-sum">{{ r.summary }}</text>
-            <text v-if="r.status === 'active'" class="route-hours num">
-              {{ r.serviceWindows.map((w) => `${w.start}–${w.end}`).join('  ·  ') }}
-            </text>
+            <text class="row-sum">{{ r.summary }}</text>
+            <text v-if="r.status === 'active'" class="row-hours num">{{ hours(r) }}</text>
           </view>
-          <text v-if="r.status === 'active'" class="chev">›</text>
-        </view>
-      </view>
-
-      <!-- 服务入口 -->
-      <view class="section">
-        <text class="section-title">服务</text>
-        <view class="tiles">
-          <view class="tile tile--mint" hover-class="tap-active" @tap="go('/pages/feedback/index')">
-            <view class="tile-icon"><text>✎</text></view>
-            <text class="tile-name">意见反馈</text>
-            <text class="tile-desc">位置不准、页面问题，告诉我们</text>
-          </view>
-          <view class="tile tile--ink" hover-class="tap-active" @tap="go('/pages/about/index')">
-            <view class="tile-icon tile-icon--light"><text>i</text></view>
-            <text class="tile-name">服务说明</text>
-            <text class="tile-desc">服务时段、数据与隐私</text>
+          <view
+            v-if="r.status === 'active'"
+            :class="['pin', { 'pin--on': pinnedId === r.id }]"
+            hover-class="tap-active"
+            :aria-label="pinnedId === r.id ? '取消置顶' : '置顶'"
+            @tap.stop="togglePin(r)"
+          >
+            <text>{{ pinnedId === r.id ? '★' : '☆' }}</text>
           </view>
         </view>
       </view>
+    </view>
 
-      <view class="note">
-        <text>位置超过 60 秒未更新会标为「数据已过期」</text>
-        <text>查车不会获取你的位置</text>
+    <!-- 服务 -->
+    <view class="section">
+      <view class="section-head"><text class="section-title">服务</text></view>
+      <view class="card list">
+        <view class="row row--link" hover-class="row-hover" @tap="go('/pages/feedback/index')">
+          <view class="row-body">
+            <text class="row-name">意见反馈</text>
+            <text class="row-sum">位置不准、页面打不开，告诉我们</text>
+          </view>
+          <text class="chev">›</text>
+        </view>
+        <view class="row row--link" hover-class="row-hover" @tap="go('/pages/about/index')">
+          <view class="row-body">
+            <text class="row-name">服务说明</text>
+            <text class="row-sum">服务时段、数据状态与隐私</text>
+          </view>
+          <text class="chev">›</text>
+        </view>
       </view>
+    </view>
+
+    <view class="note">
+      <text>位置超过 60 秒未更新会标为「数据已过期」</text>
+      <text>查车不会获取你的位置</text>
     </view>
 
     <MockSwitch :bottom="24 + nav.safeBottom" @change="loadRoutes" />
@@ -231,242 +249,127 @@ const go = (url: string) => uni.navigateTo({ url })
 <style lang="scss" scoped>
 .page {
   min-height: 100vh;
-  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
-}
-
-/* ---------- hero ---------- */
-.hero {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(160deg, #0b1f1c 0%, #0d332c 55%, #0e5246 100%);
-  color: #fff;
-  padding-bottom: 120rpx;
-}
-.glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.55;
-}
-.glow--a { width: 520rpx; height: 520rpx; right: -180rpx; top: -120rpx; background: #13a88f; }
-.glow--b { width: 360rpx; height: 360rpx; left: -140rpx; bottom: -120rpx; background: #c8f169; opacity: 0.18; }
-
-.nav {
-  position: relative;
-  display: flex;
-  align-items: center;
   padding-left: 32rpx;
+  padding-right: 32rpx;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
-.brand { display: flex; align-items: center; gap: 14rpx; }
-.mark {
-  width: 52rpx;
-  height: 52rpx;
-  border-radius: 16rpx;
-  background: $lime;
-  color: $ink;
-  font-weight: 900;
-  font-size: 28rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.brand-name { font-size: 32rpx; font-weight: 800; letter-spacing: 1rpx; }
-.plus { color: $lime; }
 
-.hero-body {
-  position: relative;
-  padding: 40rpx 40rpx 0;
-  display: flex;
-  flex-direction: column;
-}
-.eyebrow {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.64);
-  letter-spacing: 2rpx;
-}
-.headline {
-  margin-top: 16rpx;
-  font-size: 60rpx;
-  line-height: 1.22;
-  font-weight: 800;
-  letter-spacing: -1rpx;
-  white-space: pre-line;
-}
-.clock-row {
-  margin-top: 36rpx;
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-}
-.clock { font-size: 44rpx; font-weight: 700; }
-.svc {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 8rpx 20rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.2);
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.85);
-}
-.svc-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: $lime; }
-.svc-dot--off { background: #94a3b8; }
+.nav { display: flex; align-items: center; }
+.wordmark { font-family: $serif; font-size: 34rpx; font-weight: 700; letter-spacing: 1rpx; }
+.plus { color: $brand; }
 
-/* ---------- content ---------- */
-.content {
-  position: relative;
-  margin-top: -84rpx;
-  padding: 0 28rpx;
+.greet { padding: 48rpx 0 16rpx; display: flex; flex-direction: column; gap: 8rpx; }
+.greet-title { font-family: $serif; font-size: 64rpx; font-weight: 600; line-height: 1.2; letter-spacing: 1rpx; }
+.greet-sub { font-size: 26rpx; color: $ink-3; }
+
+/* ---------- section ---------- */
+.section { margin-top: 48rpx; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 8rpx 16rpx;
 }
+.section-title { font-size: 24rpx; font-weight: 600; color: $ink-3; letter-spacing: 2rpx; }
+.section-action { font-size: 26rpx; font-weight: 600; color: $brand; padding: 8rpx 0 8rpx 24rpx; }
+
 .card {
   background: $surface;
+  border: $hairline;
   border-radius: $radius-lg;
   box-shadow: $shadow;
 }
+.card-hover { background: #f8f6f1; }
 
-.live { padding: 32rpx; box-shadow: $shadow-lg; }
-.live-head { display: flex; align-items: center; gap: 20rpx; }
+/* ---------- 置顶卡片 ---------- */
+.featured { padding: 32rpx; display: flex; flex-direction: column; align-items: flex-start; }
+.featured-top { width: 100%; display: flex; align-items: center; gap: 16rpx; }
+.featured-name { flex: 1; font-size: 28rpx; font-weight: 600; color: $ink-2; }
+
 .code {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 20rpx;
+  min-width: 60rpx;
+  height: 60rpx;
+  padding: 0 12rpx;
+  border-radius: 16rpx;
   color: #fff;
-  font-weight: 800;
-  font-size: 30rpx;
+  font-weight: 700;
+  font-size: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
-.code--lg { width: 84rpx; height: 84rpx; border-radius: 26rpx; font-size: 36rpx; }
-.live-title { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.live-name { font-size: 32rpx; font-weight: 700; }
-.live-meta { font-size: 22rpx; color: $ink-3; }
 
-.live-main {
-  margin-top: 28rpx;
-  padding: 28rpx;
-  border-radius: $radius;
-  background: $bg;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
+.headline {
+  margin-top: 36rpx;
+  font-family: $serif;
+  font-size: 44rpx;
+  font-weight: 600;
+  line-height: 1.35;
 }
-.live-line { font-size: 38rpx; font-weight: 800; letter-spacing: -0.5rpx; }
-.live-sub { font-size: 24rpx; color: $ink-2; }
-.live-main--normal { background: linear-gradient(135deg, #e7f6ec, #f2faf5); }
-.live-main--stale { background: $stale-soft; .live-line { color: $stale; } }
-.live-main--error { background: $err-soft; .live-line { color: $err; } }
-.live-main--unavailable, .live-main--offhours { .live-line { color: $off; } }
+.headline--stale { color: $stale; }
+.headline--err, .headline--error { color: $err; }
+.headline--unavailable, .headline--offhours, .headline--loading { color: $off; }
+.detail { margin-top: 12rpx; font-size: 26rpx; color: $ink-3; line-height: 1.6; }
 
-.live-foot {
-  margin-top: 24rpx;
+.featured-foot {
+  width: 100%;
+  margin-top: 32rpx;
+  padding-top: 24rpx;
+  border-top: $hairline;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: $brand;
 }
-.hint { font-size: 24rpx; color: $ink-3; }
-.arrow {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
-  background: $ink;
-  color: $lime;
-  font-size: 30rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.arrow { font-size: 30rpx; }
 
-.skeleton { display: flex; flex-direction: column; gap: 20rpx; }
-.sk { border-radius: 16rpx; background: linear-gradient(90deg, #edf1ef, #f6f8f7, #edf1ef); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
-.sk--a { height: 64rpx; width: 60%; }
-.sk--b { height: 150rpx; }
-.sk--c { height: 40rpx; width: 40%; }
+.pin-hint { display: block; margin-top: 16rpx; padding: 0 8rpx; font-size: 22rpx; color: $ink-3; }
+
+.sk { border-radius: 12rpx; background: linear-gradient(90deg, $sunken, #f5f2ec, $sunken); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+.featured .sk + .sk { margin-top: 20rpx; }
+.sk--a { height: 60rpx; width: 50%; }
+.sk--b { height: 56rpx; width: 85%; }
+.sk--c { height: 32rpx; width: 40%; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
-.err-card { padding: 40rpx 32rpx; display: flex; flex-direction: column; gap: 12rpx; box-shadow: $shadow-lg; }
-.err-title { font-size: 34rpx; font-weight: 800; color: $err; }
-.err-desc { font-size: 26rpx; color: $ink-2; }
-
-.btn {
-  margin-top: 16rpx;
-  height: 84rpx;
-  border-radius: 999rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 28rpx;
-}
-.btn--dark { background: $ink; color: #fff; }
-
-/* ---------- sections ---------- */
-.section { margin-top: 48rpx; }
-.section-title {
-  display: block;
-  padding: 0 8rpx 20rpx;
-  font-size: 26rpx;
-  font-weight: 700;
-  color: $ink-3;
-  letter-spacing: 2rpx;
-}
-
-.route {
+/* ---------- 列表 ---------- */
+.list { padding: 0 28rpx; overflow: hidden; }
+.row {
   display: flex;
   align-items: center;
   gap: 24rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  padding: 28rpx 0;
+  border-bottom: $hairline;
 }
-.route--planned { box-shadow: none; background: rgba(255, 255, 255, 0.6); }
-.route-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
-.route-top { display: flex; align-items: center; gap: 12rpx; }
-.route-name { font-size: 30rpx; font-weight: 700; }
-.route--planned .route-name { color: $ink-3; }
-.route-sum { font-size: 24rpx; color: $ink-3; }
-.route-hours { font-size: 22rpx; color: $brand; font-weight: 600; margin-top: 4rpx; }
-.tag-soon {
-  font-size: 20rpx;
-  padding: 2rpx 12rpx;
-  border-radius: 999rpx;
-  background: #ece8fb;
-  color: #5b3fc4;
-  font-weight: 600;
-}
-.chev { font-size: 44rpx; color: #b6c2bf; }
+.row:last-child { border-bottom: none; }
+.row-hover { opacity: 0.7; }
+.row--planned .row-name { color: $ink-3; }
+.row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
+.row-top { display: flex; align-items: center; gap: 12rpx; }
+.row-name { font-size: 30rpx; font-weight: 600; }
+.row-sum { font-size: 24rpx; color: $ink-3; }
+.row-hours { font-size: 22rpx; color: $ink-2; margin-top: 4rpx; }
+.tag { font-size: 20rpx; padding: 2rpx 12rpx; border-radius: 999rpx; background: $sunken; color: $ink-2; }
 
-.tiles { display: flex; gap: 20rpx; }
-.tile {
-  flex: 1;
-  padding: 28rpx;
-  border-radius: $radius-lg;
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-  min-height: 240rpx;
-}
-.tile--mint { background: $brand-soft; }
-.tile--ink { background: $ink; color: #fff; .tile-desc { color: rgba(255, 255, 255, 0.64); } }
-.tile-icon {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 20rpx;
-  background: $brand;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 800;
+.pin {
+  width: 72rpx;
+  height: 72rpx;
+  margin-right: -12rpx;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 28rpx;
+  font-size: 36rpx;
+  color: #a8a295;
 }
-.tile-icon--light { background: $lime; color: $ink; font-style: italic; font-family: Georgia, serif; }
-.tile-name { font-size: 30rpx; font-weight: 700; }
-.tile-desc { font-size: 22rpx; color: $ink-2; }
+.pin--on { color: $brand; }
+.chev { font-size: 40rpx; color: #b3ada1; }
 
 .note {
-  margin-top: 48rpx;
+  margin-top: 56rpx;
   display: flex;
   flex-direction: column;
   align-items: center;

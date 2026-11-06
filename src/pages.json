@@ -2,7 +2,7 @@
   "pages": [
     {
       "path": "pages/index/index",
-      "style": { "navigationStyle": "custom", "navigationBarTextStyle": "white", "enablePullDownRefresh": true, "backgroundTextStyle": "light" }
+      "style": { "navigationStyle": "custom", "navigationBarTextStyle": "black", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" }
     },
     {
       "path": "pages/route/detail",
@@ -20,8 +20,8 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "智汇黎安+",
-    "navigationBarBackgroundColor": "#F3F6F4",
-    "backgroundColor": "#F3F6F4",
-    "backgroundColorTop": "#0B1F1C"
+    "navigationBarBackgroundColor": "#F6F4EF",
+    "backgroundColor": "#F6F4EF",
+    "backgroundColorTop": "#F6F4EF"
   }
 }

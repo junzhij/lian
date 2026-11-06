@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onHide, onShow, onUnload } from '@dcloudio/uni-app'
 import { api } from '@/services/api'
 import type { DataState, VehicleSnapshot } from '@/types'
@@ -34,13 +34,14 @@ export function useVehicles(getRouteId: () => string | undefined, intervalMs: nu
 
   const views = computed<VehicleView[]>(() => {
     const s = snapshot.value
-    if (!s || !s.operating) return []
+    // 快照必须属于当前线路：切换线路时绝不显示上一条线路的车
+    if (!s || !s.operating || s.routeId !== getRouteId()) return []
     return s.vehicles.map((v) => classifyVehicle(v, serverNow.value)).filter((v): v is VehicleView => !!v)
   })
 
   const state = computed<DataState>(() => {
     if (error.value) return 'error'
-    if (!snapshot.value) return 'loading'
+    if (!snapshot.value || snapshot.value.routeId !== getRouteId()) return 'loading'
     if (!snapshot.value.operating) return 'offhours'
     return overallState(views.value)
   })
@@ -93,6 +94,14 @@ export function useVehicles(getRouteId: () => string | undefined, intervalMs: nu
       refresh()
     }
   }
+
+  // 线路变了（例如首页换了置顶）：清掉旧数据，作废在途请求，立即拉新线路
+  watch(getRouteId, (id, old) => {
+    if (id === old) return
+    snapshot.value = null
+    error.value = null
+    if (pollTimer) start()
+  })
 
   onShow(() => {
     uni.onNetworkStatusChange(onNet)

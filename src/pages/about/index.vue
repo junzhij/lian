@@ -88,20 +88,20 @@ const PRIVACY = [
   margin-top: 16rpx;
   padding: 48rpx 36rpx;
   border-radius: $radius-lg;
-  background: linear-gradient(150deg, #0b1f1c, #0e5246);
-  color: #fff;
+  background: $surface;
+  border: $hairline;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
 }
-.eyebrow { font-size: 22rpx; letter-spacing: 6rpx; color: $lime; font-weight: 700; }
-.h1 { font-size: 52rpx; font-weight: 800; }
-.plus { color: $lime; }
-.lead { font-size: 26rpx; line-height: 1.7; color: rgba(255, 255, 255, 0.78); }
+.eyebrow { font-size: 22rpx; letter-spacing: 6rpx; color: $brand; font-weight: 700; }
+.h1 { font-family: $serif; font-size: 56rpx; font-weight: 600; }
+.plus { color: $brand; }
+.lead { font-size: 26rpx; line-height: 1.7; color: $ink-2; }
 
 .section { margin-top: 44rpx; }
 .section-title { display: block; padding: 0 8rpx 18rpx; font-size: 26rpx; font-weight: 700; color: $ink-3; letter-spacing: 2rpx; }
-.card { background: $surface; border-radius: $radius-lg; padding: 8rpx 28rpx; }
+.card { background: $surface; border: $hairline; border-radius: $radius-lg; padding: 8rpx 28rpx; }
 .row { display: flex; align-items: center; gap: 20rpx; padding: 24rpx 0; border-bottom: 1rpx solid $line; }
 .row:last-child { border-bottom: none; }
 .row--state { align-items: flex-start; .col { padding-top: 2rpx; } }
@@ -121,6 +121,7 @@ const PRIVACY = [
   padding: 28rpx;
   border-radius: $radius-lg;
   background: $surface;
+  border: $hairline;
   display: flex;
   flex-direction: column;
   gap: 8rpx;

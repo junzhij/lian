@@ -37,7 +37,7 @@ function open() {
   gap: 12rpx;
   padding: 10rpx 22rpx 10rpx 12rpx;
   border-radius: 999rpx;
-  background: rgba(11, 31, 28, 0.88);
+  background: rgba(31, 30, 27, 0.9);
   color: #fff;
   font-size: 22rpx;
   box-shadow: $shadow-lg;
@@ -45,7 +45,7 @@ function open() {
 .tag {
   padding: 2rpx 12rpx;
   border-radius: 999rpx;
-  background: $lime;
+  background: #fff;
   color: $ink;
   font-weight: 800;
   letter-spacing: 1rpx;

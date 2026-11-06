@@ -4,6 +4,7 @@ import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import StatusPill from '@/components/StatusPill.vue'
 import MockSwitch from '@/components/MockSwitch.vue'
 import { useNavLayout } from '@/composables/useNavLayout'
+import { pinnedId, pinRoute, unpinRoute } from '@/composables/usePinnedRoute'
 import { useVehicles } from '@/composables/useVehicles'
 import { DETAIL_POLL_MS, MAP_CENTER, MAP_SCALE, STALE_AFTER_MS } from '@/config'
 import { api } from '@/services/api'
@@ -68,7 +69,7 @@ const markers = computed(() => {
     height: 16,
     anchor: { x: 0.5, y: 0.5 },
     iconPath: s.id === nearId.value ? '/static/markers/stop-near.png' : '/static/markers/stop.png',
-    callout: { content: s.name, display: 'BYCLICK', padding: 8, borderRadius: 10, fontSize: 12, color: '#0B1F1C', bgColor: '#FFFFFF' },
+    callout: { content: s.name, display: 'BYCLICK', padding: 8, borderRadius: 10, fontSize: 12, color: '#1F1E1B', bgColor: '#FCFBF8' },
   }))
   // 只有“正常”和“已过期”才画车；过期置灰
   const buses = views.value.map((v, i) => ({
@@ -87,7 +88,7 @@ const markers = computed(() => {
       borderRadius: 12,
       fontSize: 12,
       color: '#FFFFFF',
-      bgColor: v.state === 'stale' ? '#64748BEE' : '#0B1F1CEE',
+      bgColor: v.state === 'stale' ? '#78716CEE' : '#1F1E1BEE',
     },
   }))
   return [...stops, ...buses]
@@ -124,6 +125,18 @@ function onRefresh() {
 function back() {
   if (getCurrentPages().length > 1) uni.navigateBack()
   else uni.reLaunch({ url: '/pages/index/index' })
+}
+
+const pinned = computed(() => pinnedId.value === routeId.value)
+function togglePin() {
+  if (!routeId.value) return
+  if (pinned.value) {
+    unpinRoute()
+    uni.showToast({ title: '已取消置顶', icon: 'none' })
+  } else {
+    pinRoute(routeId.value)
+    uni.showToast({ title: '已置顶到首页', icon: 'none' })
+  }
 }
 
 const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${routeId.value}` })
@@ -183,10 +196,8 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
                 <StatusPill state="normal" />
                 <text class="st-ago num">{{ formatAgo(lead.ageMs) }}更新</text>
               </view>
-              <view class="st-bus">
-                <text class="bus-id num">{{ lead.vehicle.vehicleId }}</text>
-                <text class="bus-near">{{ nearText }}</text>
-              </view>
+              <text class="bus-near">{{ nearText }}</text>
+              <text class="bus-id num">车辆 {{ lead.vehicle.vehicleId }}</text>
               <view class="fresh">
                 <view class="fresh-bar"><view class="fresh-fill" :style="{ width: (1 - freshness) * 100 + '%' }" /></view>
                 <text class="fresh-txt">超过 60 秒未更新将标为过期</text>
@@ -238,9 +249,13 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
                 <text :class="['spin', { 'spin--on': loading }]">↻</text>
                 <text>刷新</text>
               </view>
-              <text class="auto">停留时每 {{ DETAIL_POLL_MS / 1000 }} 秒自动刷新</text>
+              <view :class="['refresh', { 'refresh--on': pinned }]" hover-class="tap-active" @tap="togglePin">
+                <text>{{ pinned ? '★ 已置顶' : '☆ 置顶到首页' }}</text>
+              </view>
+              <view class="spacer" />
               <text class="report" @tap="goFeedback">反馈问题</text>
             </view>
+            <text class="auto-note">停留在本页时每 {{ DETAIL_POLL_MS / 1000 }} 秒自动刷新</text>
 
             <!-- 站点 -->
             <view v-if="route" class="stops">
@@ -283,7 +298,7 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
   background: $bg;
 }
 .map { width: 100%; }
-.map--blank { background: linear-gradient(180deg, #dfe9e5, #eef3f1); }
+.map--blank { background: $sunken; }
 
 /* ---------- 顶部 ---------- */
 .topbar {
@@ -357,7 +372,7 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
   width: 72rpx;
   height: 8rpx;
   border-radius: 999rpx;
-  background: #cdd7d4;
+  background: #d6d1c6;
   margin: 16rpx auto 0;
 }
 .sheet-inner { padding: 20rpx 28rpx 0; }
@@ -366,39 +381,34 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
   border-radius: $radius-lg;
   padding: 32rpx;
   background: $surface;
+  border: $hairline;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 12rpx;
   box-shadow: $shadow;
 }
-.status--normal {
-  background: $ink;
-  color: #fff;
-  gap: 0;
-}
-.status--stale { background: #fff8ef; border: 2rpx solid #f6d9b4; box-shadow: none; .st-title { color: $stale; } }
-.status--error { background: #fff5f5; border: 2rpx solid #f5c2c2; box-shadow: none; .st-title { color: $err; } }
+.status--normal { gap: 0; }
+.status--stale { background: #fdf8f0; border-color: #efd9b8; .st-title { color: $stale; } }
+.status--error { background: #fdf5f3; border-color: #efc9c3; .st-title { color: $err; } }
 .status--off .st-title { color: $off; }
 
 .st-row { width: 100%; display: flex; align-items: center; justify-content: space-between; }
-.status--normal :deep(.pill) { background: rgba(200, 241, 105, 0.16); color: $lime; }
-.st-ago { font-size: 26rpx; color: rgba(255, 255, 255, 0.72); }
+.st-ago { font-size: 24rpx; color: $ink-3; }
 
-.st-bus { margin-top: 28rpx; display: flex; flex-direction: column; gap: 4rpx; }
-.bus-id { font-size: 72rpx; font-weight: 800; line-height: 1.05; letter-spacing: -1rpx; }
-.bus-near { font-size: 30rpx; color: $lime; font-weight: 600; }
+.bus-near { margin-top: 28rpx; font-family: $serif; font-size: 48rpx; font-weight: 600; line-height: 1.3; }
+.bus-id { margin-top: 8rpx; font-size: 26rpx; color: $ink-3; }
 
 .fresh { width: 100%; margin-top: 28rpx; display: flex; flex-direction: column; gap: 10rpx; }
-.fresh-bar { height: 8rpx; border-radius: 999rpx; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
-.fresh-fill { height: 100%; border-radius: 999rpx; background: linear-gradient(90deg, #13a88f, $lime); transition: width 1s linear; }
-.fresh-txt { font-size: 22rpx; color: rgba(255, 255, 255, 0.56); }
+.fresh-bar { height: 6rpx; border-radius: 999rpx; background: $sunken; overflow: hidden; }
+.fresh-fill { height: 100%; border-radius: 999rpx; background: $brand; transition: width 1s linear; }
+.fresh-txt { font-size: 22rpx; color: $ink-3; }
 
-.st-title { margin-top: 8rpx; font-size: 40rpx; font-weight: 800; letter-spacing: -0.5rpx; }
+.st-title { margin-top: 8rpx; font-family: $serif; font-size: 44rpx; font-weight: 600; }
 .st-desc { font-size: 26rpx; color: $ink-2; line-height: 1.6; }
 
 .status--loading { gap: 20rpx; }
-.sk { width: 100%; border-radius: 16rpx; background: linear-gradient(90deg, #edf1ef, #f6f8f7, #edf1ef); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+.sk { width: 100%; border-radius: 16rpx; background: linear-gradient(90deg, $sunken, #f5f2ec, $sunken); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
 .sk--a { height: 44rpx; width: 40%; }
 .sk--b { height: 120rpx; }
 @keyframes shimmer { to { background-position: -200% 0; } }
@@ -430,13 +440,15 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
   padding: 0 24rpx;
   border-radius: 999rpx;
   background: $surface;
-  font-weight: 700;
-  box-shadow: $shadow;
+  border: $hairline;
+  font-weight: 600;
 }
 .spin { font-size: 28rpx; display: inline-block; }
 .spin--on { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.auto { flex: 1; color: $ink-3; }
+.spacer { flex: 1; }
+.refresh--on { color: $brand; border-color: #c9ddd6; background: $brand-soft; }
+.auto-note { display: block; margin: 12rpx 8rpx 0; font-size: 22rpx; color: $ink-3; }
 .report { color: $brand; font-weight: 700; }
 
 /* ---------- 站点 ---------- */
@@ -469,7 +481,7 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
 .stop-hint { font-size: 22rpx; color: $ink-3; }
 
 .stop--near {
-  .rail-dot { background: $lime; border-color: $ink !important; transform: scale(1.25); }
+  .rail-dot { background: $ink; border-color: $ink !important; transform: scale(1.2); }
   .stop-name { font-weight: 800; }
 }
 .here {
@@ -477,8 +489,8 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
   font-weight: 700;
   padding: 6rpx 16rpx;
   border-radius: 999rpx;
-  background: $ink;
-  color: $lime;
+  background: $brand-soft;
+  color: $brand-deep;
 }
 .stop--stale .here { background: $off-soft; color: $off; }
 </style>
