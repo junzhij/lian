@@ -5,7 +5,7 @@ import StatusPill from '@/components/StatusPill.vue'
 import MockSwitch from '@/components/MockSwitch.vue'
 import { useNavLayout } from '@/composables/useNavLayout'
 import { useVehicles } from '@/composables/useVehicles'
-import { DETAIL_POLL_MS, STALE_AFTER_MS } from '@/config'
+import { DETAIL_POLL_MS, MAP_CENTER, MAP_SCALE, STALE_AFTER_MS } from '@/config'
 import { api } from '@/services/api'
 import type { Route } from '@/types'
 import { describeNear, nearestStop } from '@/utils/geo'
@@ -45,14 +45,8 @@ const sheetHeight = Math.round(nav.windowHeight * 0.52)
 const mapHeight = nav.windowHeight - sheetHeight + 28
 
 /* ---------- 地图 ---------- */
-const center = computed(() => {
-  const s = route.value?.stops ?? []
-  if (!s.length) return { latitude: 18.4145, longitude: 110.0457 }
-  return {
-    latitude: s.reduce((a, b) => a + b.latitude, 0) / s.length,
-    longitude: s.reduce((a, b) => a + b.longitude, 0) / s.length,
-  }
-})
+// 打开时的视野固定在学校（.env 的 VITE_MAP_CENTER / VITE_MAP_SCALE）；“⤢”按钮可缩放到整条线路
+const center = MAP_CENTER
 
 const lead = computed(() => views.value[0])
 const nearId = computed(() => (lead.value && route.value ? nearestStop(lead.value.vehicle, route.value.stops)?.stop.id : undefined))
@@ -145,10 +139,9 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
       :style="{ height: mapHeight + 'px' }"
       :latitude="center.latitude"
       :longitude="center.longitude"
-      :scale="16"
+      :scale="MAP_SCALE"
       :markers="markers"
       :polyline="polyline"
-      :include-points="route.path"
       :show-location="false"
       :enable-poi="false"
       :show-compass="false"
