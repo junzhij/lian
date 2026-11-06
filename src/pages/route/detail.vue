@@ -261,7 +261,7 @@ const goFeedback = () => uni.navigateTo({ url: `/pages/feedback/index?routeId=${
                 </view>
                 <view class="stop-body">
                   <text class="stop-name">{{ s.name }}</text>
-                  <text class="stop-hint">{{ s.hint }}</text>
+                  <text v-if="s.hint" class="stop-hint">{{ s.hint }}</text>
                 </view>
                 <text v-if="s.id === nearId" class="here">{{ state === 'stale' ? '最后位置' : '车在附近' }}</text>
               </view>

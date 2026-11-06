@@ -92,7 +92,7 @@ export const mockApi = {
       ...base,
       vehicles: [
         {
-          vehicleId: 'LA-01',
+          vehicleId: `${route.code}-01`,
           ...positionAt(route.path, loopMs, collectedAt),
           collectedAt,
           deviceStatus: s === 'unavailable' ? 'offline' : 'online',
