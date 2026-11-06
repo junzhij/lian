@@ -1,0 +1,27 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": { "navigationStyle": "custom", "navigationBarTextStyle": "white", "enablePullDownRefresh": true, "backgroundTextStyle": "light" }
+    },
+    {
+      "path": "pages/route/detail",
+      "style": { "navigationStyle": "custom", "navigationBarTextStyle": "black", "disableScroll": true }
+    },
+    {
+      "path": "pages/feedback/index",
+      "style": { "navigationBarTitleText": "意见反馈" }
+    },
+    {
+      "path": "pages/about/index",
+      "style": { "navigationBarTitleText": "服务说明" }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "智汇黎安+",
+    "navigationBarBackgroundColor": "#F3F6F4",
+    "backgroundColor": "#F3F6F4",
+    "backgroundColorTop": "#0B1F1C"
+  }
+}

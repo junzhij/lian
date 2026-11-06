@@ -1,0 +1,32 @@
+/* 设计 token：每个 .vue 文件都能直接用（uni 会自动注入本文件） */
+
+// 品牌
+$ink: #0b1f1c;          // 主文字 / 深色背景
+$ink-2: #3c4f4b;        // 次级文字
+$ink-3: #6b7c78;        // 辅助文字（对白底 ≥ 4.5:1）
+$brand: #0e7c6b;        // 主色：黎安青
+$brand-deep: #08594d;
+$brand-soft: #e3f2ee;
+$lime: #c8f169;         // 点缀色，只用在深色背景上
+
+// 表面
+$bg: #f3f6f4;
+$surface: #ffffff;
+$line: #e4ebe8;
+
+// 数据状态（文字用深色版本保证对比度，状态同时有文字，不只靠颜色）
+$ok: #15803d;
+$ok-soft: #e7f6ec;
+$stale: #b45309;
+$stale-soft: #fdf1e3;
+$off: #475569;
+$off-soft: #eef1f5;
+$err: #b91c1c;
+$err-soft: #fdeaea;
+
+$radius-lg: 40rpx;
+$radius: 28rpx;
+$radius-sm: 18rpx;
+
+$shadow: 0 12rpx 40rpx rgba(11, 31, 28, 0.08);
+$shadow-lg: 0 24rpx 64rpx rgba(11, 31, 28, 0.16);

@@ -1,0 +1,25 @@
+{
+  "name": "智汇黎安+",
+  "appid": "",
+  "description": "校园摆渡车实时位置查询",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "minified": true,
+      "postcss": true
+    },
+    "usingComponents": true,
+    "lazyCodeLoading": "requiredComponents",
+    "optimization": { "subPackages": true }
+  },
+  "h5": {
+    "title": "智汇黎安+"
+  },
+  "uniStatistics": { "enable": false },
+  "vueVersion": "3"
+}
