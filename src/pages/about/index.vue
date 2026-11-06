@@ -76,7 +76,7 @@ const PRIVACY = [
     </view>
 
     <view class="credit">
-      <text>以太编辑 AethEdit · V0.1.0</text>
+      <text>以太编辑 AethEdit · V0.1.1</text>
     </view>
   </view>
 </template>

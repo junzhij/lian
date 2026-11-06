@@ -2,8 +2,8 @@
   "name": "智汇黎安+",
   "appid": "wx2bebd3047af7c2f2",
   "description": "校园摆渡车实时位置查询",
-  "versionName": "0.1.0",
-  "versionCode": "100",
+  "versionName": "0.1.1",
+  "versionCode": "101",
   "transformPx": false,
   "mp-weixin": {
     "appid": "wx2bebd3047af7c2f2",

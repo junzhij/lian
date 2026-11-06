@@ -1,6 +1,6 @@
 {
   "name": "zhihui-lian-plus",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "智汇黎安+ · 校园摆渡车实时位置查询（微信小程序）",
   "scripts": {
