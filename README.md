@@ -51,9 +51,9 @@ npm run dev:mp-weixin        # 开发模式，使用内置 mock 数据
 
 ```bash
 # 经度,纬度（GCJ-02）。从高德坐标拾取器 https://lbs.amap.com/tools/picker 复制即可
-VITE_MAP_CENTER=110.0457,18.4145
+VITE_MAP_CENTER=103.7764,1.2966
 # 缩放级别 3–20，校园一般 15–17
-VITE_MAP_SCALE=16
+VITE_MAP_SCALE=15
 ```
 
 - 只想改自己本地的，写到 `.env.local`（不进 git）；临时试也可以 `VITE_MAP_CENTER=... npm run dev:mp-weixin`。
